@@ -11,12 +11,12 @@ import (
 )
 
 type Post struct {
-	rank         int
-	title        string
+	rank         string
 	titleLink    string
-	score        int
-	comments     string
+	title        string
+	score        string
 	commentsLink string
+	comments     string
 }
 
 func readHtmlFromWebsite(url string) string {
@@ -45,45 +45,141 @@ func readHtmlFromWebsite(url string) string {
 	return string(body)
 }
 
+func readHtmlFile() string {
+	fi, _ := os.Open("hackernews.html")
+	body, _ := io.ReadAll(fi)
+	return string(body)
+}
+
 func parsePost(p *Post, tokenizer *html.Tokenizer) {
 	commentsLinkFound := false
+	titleFound := false
 	for !commentsLinkFound {
 		tokenType := tokenizer.Next()
 		if tokenType == html.StartTagToken {
 			token := tokenizer.Token()
-			if strings.Contains(token.String(), "span class=\"rank\"") {
+			if token.Data == "span" && token.Attr[0].Val == "rank" {
+				// rank
 				tokenType := tokenizer.Next()
 				if tokenType == html.TextToken {
 					token := tokenizer.Token()
-					fmt.Println(token.String())
-					commentsLinkFound = true
+					p.rank = strings.Trim(token.String(), ".")
+					fmt.Printf("Rank: %s\n", p.rank)
 				} else {
 					// It should be text, we have an error
 					panic("No Rank found")
 				}
+			} else if !titleFound && token.Data == "a" && token.Attr[0].Key == "href" {
+				// titleLink and title
+				// Ask HN posts
+				tokenVal := token.Attr[0].Val
+				var titleLink string
+				if len(tokenVal) > 7 && tokenVal[:8] == "item?id=" {
+					// Ask HN/Show HN/Launch HN posts
+					var stringBuilder strings.Builder
+					stringBuilder.WriteString("https://news.ycombinator.com/")
+					stringBuilder.WriteString(tokenVal)
+					titleLink = stringBuilder.String()
+				} else {
+					titleLink = tokenVal
+				}
+				p.titleLink = titleLink
+				fmt.Printf("Title Link: %s\n", p.titleLink)
+				// title should immediately follow title link
+				tokenType := tokenizer.Next()
+				if tokenType == html.TextToken {
+					token := tokenizer.Token()
+					p.title = token.String()
+					fmt.Printf("Title: %s\n", p.title)
+				} else {
+					// It should be text, we have an error
+					panic("No Rank found")
+				}
+				titleFound = true
+			} else if token.Data == "span" && token.Attr[0].Val == "score" {
+				// score
+				tokenType := tokenizer.Next()
+				if tokenType == html.TextToken {
+					token := tokenizer.Token()
+					p.score = strings.Trim(token.String(), " points")
+					fmt.Printf("Score: %s\n", p.score)
+				} else {
+					// It should be text, we have an error
+					panic("No Rank found")
+				}
+			} else if titleFound && token.Data == "a" && token.Attr[0].Key == "href" {
+				//fmt.Println("HERE")
+				// comment link and comment
+				// could be time since posting link as well, so we need to add addition criteria based
+				// on the TextToken which follows
+				linkVal := token.Attr[0].Val
+				tokenType := tokenizer.Next()
+				token := tokenizer.Token()
+				if tokenType == html.TextToken && (strings.Contains(token.String(), "comment") || strings.Contains(token.String(), "discuss")) {
+					var stringBuilder strings.Builder
+					stringBuilder.WriteString("https://news.ycombinator.com/")
+					stringBuilder.WriteString(linkVal)
+					commentsLink := stringBuilder.String()
+					p.commentsLink = commentsLink
+					p.comments = token.String()
+					/*
+						if strings.Contains(token.String(), "comments") {
+							p.comments = strings.Trim(token.String(), "&nbsp;comments")
+						} else {
+							// contains "discuss", no comments yet
+							p.comments = "0"
+						}
+					*/
+					fmt.Printf("Comments link: %s\n", p.commentsLink)
+					fmt.Printf("Comments: %s\n", p.comments)
+					commentsLinkFound = true
+				}
+			} else if !commentsLinkFound && token.Data == "tr" && len(token.Attr) > 0 && strings.Contains(token.String(), "spacer") { //token.Data == "tr" { //&& len(token.Attr) > 0 && token.Attr[0].Key == "spacer" {
+				// found a new post without finishing the last one, probably corresponds to the posts of YC
+				// companies that are hiring (they don't have comments or scores), or a post with no comments yet
+				// we'll throw it out when iterating over posts
+				// TODO: handle possible failure to find rank, title, etc.
+				/*
+					fmt.Println(token.Attr)
+					fmt.Println(len(token.Attr))
+					fmt.Println(token.Type)
+					fmt.Println(token.Data)
+					fmt.Println(token.DataAtom)
+					fmt.Println(token.String())
+					fmt.Println("HERE")
+				*/
+				commentsLinkFound = true
 			}
 		}
 	}
 }
 
-func parseHtml(body string) {
+func printPosts(posts []Post) {
+	for _, post := range posts {
+		fmt.Printf("Rank: %s\nTitle: %s\nScore: %s\nComments: %s\n", post.rank, post.title, post.score, post.comments)
+	}
+}
+
+func parseHtml(body string) []Post {
 	var posts []Post
 	tokenizer := html.NewTokenizer(strings.NewReader(body))
 	for {
 		tokenType := tokenizer.Next()
 		if tokenType == html.ErrorToken {
-			return
+			return posts
 		} else if tokenType == html.StartTagToken {
 			token := tokenizer.Token()
 			// Found a title
 			if token.Data == "td" && strings.Contains(token.String(), "align=\"right\" valign=\"top\" class=\"title\"") {
 				p := Post{
-					rank:         0,
-					title:        "title",
+					rank:         "0",
 					titleLink:    "titleLink",
-					comments:     "comments",
+					title:        "title",
+					score:        "0",
 					commentsLink: "commentsLink",
+					comments:     "comments",
 				}
+				// TODO: handle possible failure to find rank, title, etc.
 				parsePost(&p, tokenizer)
 				posts = append(posts, p)
 			}
@@ -92,6 +188,9 @@ func parseHtml(body string) {
 }
 
 func main() {
-	body := readHtmlFromWebsite("https://news.ycombinator.com/")
-	parseHtml(body)
+	//body := readHtmlFromWebsite("https://news.ycombinator.com/")
+	body := readHtmlFile() // for testing
+	posts := parseHtml(body)
+	printPosts(posts)
+	fmt.Printf("Number of posts found: %d\n", len(posts))
 }
