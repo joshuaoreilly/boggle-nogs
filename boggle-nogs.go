@@ -101,7 +101,7 @@ func parsePost(p *Post, tokenizer *html.Tokenizer) {
 				tokenType := tokenizer.Next()
 				if tokenType == html.TextToken {
 					token := tokenizer.Token()
-					p.score = strings.Trim(token.String(), " points")
+					p.score = token.String()
 					//fmt.Printf("Score: %s\n", p.score)
 				} else {
 					// It should be text, we have an error
