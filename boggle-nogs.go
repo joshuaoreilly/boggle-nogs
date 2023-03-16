@@ -93,7 +93,7 @@ func parsePost(p *Post, tokenizer *html.Tokenizer) {
 					//fmt.Printf("Title: %s\n", p.title)
 				} else {
 					// It should be text, we have an error
-					panic("No Rank found")
+					panic("No Title found")
 				}
 				titleFound = true
 			} else if token.Data == "span" && token.Attr[0].Val == "score" {
@@ -105,7 +105,7 @@ func parsePost(p *Post, tokenizer *html.Tokenizer) {
 					//fmt.Printf("Score: %s\n", p.score)
 				} else {
 					// It should be text, we have an error
-					panic("No Rank found")
+					panic("No Score found")
 				}
 			} else if titleFound && token.Data == "a" && token.Attr[0].Key == "href" {
 				// comment link and comment
