@@ -108,7 +108,6 @@ func parsePost(p *Post, tokenizer *html.Tokenizer) {
 					panic("No Rank found")
 				}
 			} else if titleFound && token.Data == "a" && token.Attr[0].Key == "href" {
-				//fmt.Println("HERE")
 				// comment link and comment
 				// could be time since posting link as well, so we need to add addition criteria based
 				// on the TextToken which follows
@@ -122,14 +121,6 @@ func parsePost(p *Post, tokenizer *html.Tokenizer) {
 					commentsLink := stringBuilder.String()
 					p.commentsLink = commentsLink
 					p.comments = token.String()
-					/*
-						if strings.Contains(token.String(), "comments") {
-							p.comments = strings.Trim(token.String(), "&nbsp;comments")
-						} else {
-							// contains "discuss", no comments yet
-							p.comments = "0"
-						}
-					*/
 					fmt.Printf("Comments link: %s\n", p.commentsLink)
 					fmt.Printf("Comments: %s\n", p.comments)
 					commentsLinkFound = true
@@ -139,15 +130,6 @@ func parsePost(p *Post, tokenizer *html.Tokenizer) {
 				// companies that are hiring (they don't have comments or scores), or a post with no comments yet
 				// we'll throw it out when iterating over posts
 				// TODO: handle possible failure to find rank, title, etc.
-				/*
-					fmt.Println(token.Attr)
-					fmt.Println(len(token.Attr))
-					fmt.Println(token.Type)
-					fmt.Println(token.Data)
-					fmt.Println(token.DataAtom)
-					fmt.Println(token.String())
-					fmt.Println("HERE")
-				*/
 				commentsLinkFound = true
 			}
 		}
@@ -168,8 +150,6 @@ func printPosts(posts []Post) {
 }
 
 func parseHtml(body string) (posts []Post, nextPageLink string) {
-	//var posts []Post
-	//nextPageLink := ""
 	tokenizer := html.NewTokenizer(strings.NewReader(body))
 	for {
 		tokenType := tokenizer.Next()
