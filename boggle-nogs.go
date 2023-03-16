@@ -64,7 +64,7 @@ func parsePost(p *Post, tokenizer *html.Tokenizer) {
 				if tokenType == html.TextToken {
 					token := tokenizer.Token()
 					p.rank = strings.Trim(token.String(), ".")
-					fmt.Printf("Rank: %s\n", p.rank)
+					//fmt.Printf("Rank: %s\n", p.rank)
 				} else {
 					// It should be text, we have an error
 					panic("No Rank found")
@@ -84,13 +84,13 @@ func parsePost(p *Post, tokenizer *html.Tokenizer) {
 					titleLink = tokenVal
 				}
 				p.titleLink = titleLink
-				fmt.Printf("Title Link: %s\n", p.titleLink)
+				//fmt.Printf("Title Link: %s\n", p.titleLink)
 				// title should immediately follow title link
 				tokenType := tokenizer.Next()
 				if tokenType == html.TextToken {
 					token := tokenizer.Token()
 					p.title = token.String()
-					fmt.Printf("Title: %s\n", p.title)
+					//fmt.Printf("Title: %s\n", p.title)
 				} else {
 					// It should be text, we have an error
 					panic("No Rank found")
@@ -102,7 +102,7 @@ func parsePost(p *Post, tokenizer *html.Tokenizer) {
 				if tokenType == html.TextToken {
 					token := tokenizer.Token()
 					p.score = strings.Trim(token.String(), " points")
-					fmt.Printf("Score: %s\n", p.score)
+					//fmt.Printf("Score: %s\n", p.score)
 				} else {
 					// It should be text, we have an error
 					panic("No Rank found")
@@ -121,8 +121,8 @@ func parsePost(p *Post, tokenizer *html.Tokenizer) {
 					commentsLink := stringBuilder.String()
 					p.commentsLink = commentsLink
 					p.comments = token.String()
-					fmt.Printf("Comments link: %s\n", p.commentsLink)
-					fmt.Printf("Comments: %s\n", p.comments)
+					//fmt.Printf("Comments link: %s\n", p.commentsLink)
+					//fmt.Printf("Comments: %s\n", p.comments)
 					commentsLinkFound = true
 				}
 			} else if !commentsLinkFound && token.Data == "tr" && len(token.Attr) > 0 && strings.Contains(token.String(), "spacer") { //token.Data == "tr" { //&& len(token.Attr) > 0 && token.Attr[0].Key == "spacer" {
@@ -187,5 +187,5 @@ func main() {
 	posts, nextPageLink := parseHtml(body)
 	printPosts(posts)
 	fmt.Println(nextPageLink)
-	fmt.Printf("Number of posts found: %d\n", len(posts))
+	//fmt.Printf("Number of posts found: %d\n", len(posts))
 }
