@@ -156,17 +156,26 @@ func parsePost(p *Post, tokenizer *html.Tokenizer) {
 
 func printPosts(posts []Post) {
 	for _, post := range posts {
-		fmt.Printf("Rank: %s\nTitle: %s\nScore: %s\nComments: %s\n", post.rank, post.title, post.score, post.comments)
+		fmt.Printf("Rank: %s\nTitle: %s\nTitle Link: %s\nScore: %s\nComments: %s\nComments Link: %s\n",
+			post.rank,
+			post.title,
+			post.titleLink,
+			post.score,
+			post.comments,
+			post.commentsLink,
+		)
 	}
 }
 
-func parseHtml(body string) []Post {
-	var posts []Post
+func parseHtml(body string) (posts []Post, nextPageLink string) {
+	//var posts []Post
+	//nextPageLink := ""
 	tokenizer := html.NewTokenizer(strings.NewReader(body))
 	for {
 		tokenType := tokenizer.Next()
 		if tokenType == html.ErrorToken {
-			return posts
+			// At the end of the document, but missing nextPageLink
+			return
 		} else if tokenType == html.StartTagToken {
 			token := tokenizer.Token()
 			// Found a title
@@ -183,6 +192,11 @@ func parseHtml(body string) []Post {
 				parsePost(&p, tokenizer)
 				posts = append(posts, p)
 			}
+			if token.Data == "a" && len(token.Attr) > 1 && token.Attr[1].Val == "morelink" {
+				nextPageLink = token.Attr[0].Val
+				// we have everything we need
+				return
+			}
 		}
 	}
 }
@@ -190,7 +204,8 @@ func parseHtml(body string) []Post {
 func main() {
 	//body := readHtmlFromWebsite("https://news.ycombinator.com/")
 	body := readHtmlFile() // for testing
-	posts := parseHtml(body)
+	posts, nextPageLink := parseHtml(body)
 	printPosts(posts)
+	fmt.Println(nextPageLink)
 	fmt.Printf("Number of posts found: %d\n", len(posts))
 }
