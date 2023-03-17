@@ -17,6 +17,7 @@ TODO:
 - Figure out whether to defer or actively close
 - Actually write HTTP server!
 - Use firebase api instead of scraping website
+- Add block-list support
 */
 
 type Post struct {
