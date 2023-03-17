@@ -10,6 +10,15 @@ import (
 	"golang.org/x/net/html"
 )
 
+/*
+TODO:
+- Add websites' root url beside title
+- Remove unecessary comments
+- Figure out whether to defer or actively close
+- Actually write HTTP server!
+- Use firebase api instead of scraping website
+*/
+
 type Post struct {
 	rank         string
 	titleLink    string
@@ -19,36 +28,66 @@ type Post struct {
 	comments     string
 }
 
+func check(e error) {
+	if e != nil {
+		panic(e)
+	}
+}
+
 func readHtmlFromWebsite(url string) string {
 	// resp is of type Response:
 	// https://pkg.go.dev/net/http#Response
 	resp, err := http.Get(url)
-	if err != nil {
-		panic(err)
-	}
+	check(err)
 
 	defer resp.Body.Close()
 
 	// resp.Body is of type io.ReadCloser (interface for Read() and Close() method)
 	body, err := io.ReadAll(resp.Body)
-
-	if err != nil {
-		panic(err)
-	}
+	check(err)
 
 	// 0644 is owner read and write, but not execute permissions
 	err = os.WriteFile("hackernews.html", body, 0644)
-	if err != nil {
-		panic(err)
-	}
+	check(err)
 
 	return string(body)
 }
 
 func readHtmlFile() string {
 	fi, _ := os.Open("hackernews.html")
+	defer fi.Close()
 	body, _ := io.ReadAll(fi)
 	return string(body)
+}
+
+func createHtml(url string, posts []Post, nextPageLink string) strings.Builder {
+	fh, err := os.Open("head.html")
+	check(err)
+	defer fh.Close()
+	ff, err := os.Open("foot.html")
+	check(err)
+	defer ff.Close()
+	head, _ := io.ReadAll(fh)
+	foot, _ := io.ReadAll(ff)
+	var stringBuilder strings.Builder
+	stringBuilder.WriteString(string(head))
+	stringBuilder.WriteString("<div class=\"posts\">\n")
+	for _, post := range posts {
+		stringBuilder.WriteString(fmt.Sprintf("<div class=\"left\">%s</div>\n", post.rank))
+		//stringBuilder.WriteString(fmt.Sprintf("<div class=\"right\">\n<a href=\"%s\">%s</a>\n"+
+		//	"<br>\n%s points <a href=\"%s\">%s</a></div>\n",
+		//	post.titleLink, post.title, post.rank, post.commentsLink, post.comments))
+		stringBuilder.WriteString("<div class=\"right\">\n")
+		stringBuilder.WriteString(fmt.Sprintf("<a href=\"%s\">%s</a>\n", post.titleLink, post.title))
+		stringBuilder.WriteString("<br>\n")
+		stringBuilder.WriteString(fmt.Sprintf("%s\n", post.score))
+		stringBuilder.WriteString(fmt.Sprintf("<a href=\"%s\">%s</a>\n", post.commentsLink, post.comments))
+		stringBuilder.WriteString("</div>\n")
+	}
+	stringBuilder.WriteString("</div>\n")
+	stringBuilder.WriteString(fmt.Sprintf("<a href=\"%s\">%s</a>\n", (url + "/" + nextPageLink + "\n"), "more"))
+	stringBuilder.WriteString(string(foot))
+	return stringBuilder
 }
 
 func parsePost(p *Post, tokenizer *html.Tokenizer) {
@@ -182,10 +221,19 @@ func parseHtml(body string) (posts []Post, nextPageLink string) {
 }
 
 func main() {
-	//body := readHtmlFromWebsite("https://news.ycombinator.com/")
-	body := readHtmlFile() // for testing
+	url := "https://bogglenogs.com"
+	body := readHtmlFromWebsite("https://news.ycombinator.com/")
+	//body := readHtmlFile() // for testing
 	posts, nextPageLink := parseHtml(body)
 	printPosts(posts)
 	fmt.Println(nextPageLink)
+	stringBuilder := createHtml(url, posts, nextPageLink)
+	page := stringBuilder.String()
+	fmt.Println(len(page))
+	// purely for debugging purposes
+	f, err := os.Create("output.html")
+	check(err)
+	f.WriteString(page)
+	f.Close()
 	//fmt.Printf("Number of posts found: %d\n", len(posts))
 }
