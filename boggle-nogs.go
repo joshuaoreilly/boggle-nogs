@@ -15,6 +15,8 @@ import (
 
 /*
 TODO:
+- Fix logging when behind proxy
+- Nicer HTML/CSS for easier reading
 - Add dates to post details?
 - Use firebase api instead of scraping website
 - Add block-list support
