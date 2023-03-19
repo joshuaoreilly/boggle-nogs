@@ -201,19 +201,6 @@ func parsePost(p *Post, tokenizer *html.Tokenizer) {
 	}
 }
 
-func printPosts(posts []Post) {
-	for _, post := range posts {
-		fmt.Printf("Rank: %s\nTitle: %s\nTitle Link: %s\nScore: %s\nComments: %s\nComments Link: %s\n",
-			post.rank,
-			post.title,
-			post.titleLink,
-			post.score,
-			post.comments,
-			post.commentsLink,
-		)
-	}
-}
-
 func parseHtml(body string) (posts []Post, nextPageLink string) {
 	tokenizer := html.NewTokenizer(strings.NewReader(body))
 	for {
