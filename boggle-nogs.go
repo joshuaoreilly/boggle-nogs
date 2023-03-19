@@ -16,9 +16,6 @@ import (
 /*
 TODO:
 - Add dates to post details?
-- Properly handle errors (don't just murder the program)
-- Remove unecessary comments
-- Figure out whether to defer or actively close
 - Use firebase api instead of scraping website
 - Add block-list support
 */
@@ -42,68 +39,97 @@ var logger log.Logger
 var regexSiteLink = regexp.MustCompile(`(site=)`)
 var regexNextPage = regexp.MustCompile(`(\/\?p=\d)`)
 
-func check(e error) {
-	if e != nil {
-		panic(e)
+func check(err error) {
+	if err != nil {
+		panic(err)
 	}
 }
 
+func errorHandler(w http.ResponseWriter, r *http.Request, reason string) {
+	/*
+		Catch-all error handler; incorrectly returns StatusNotFound in all cases
+	*/
+	w.WriteHeader(http.StatusNotFound)
+	fmt.Fprint(w, reason)
+	logger.Println(reason)
+}
+
+func handleRequest(w http.ResponseWriter, r *http.Request) {
+	/*
+		Checks if the requested URL is valid/supported,
+		gets news.ycombinator.com page,
+		scrapes it,
+		and sends the output.
+	*/
+	logger.Printf("Requested %s%s", domain, r.URL.RequestURI())
+
+	if !(r.URL.Path == "/" ||
+		regexNextPage.MatchString(r.URL.RawQuery) ||
+		(r.URL.Path == "/from" &&
+			regexSiteLink.MatchString(r.URL.RawQuery))) {
+		errorHandler(w, r, fmt.Sprintf("404: Page %s not found", domain+r.URL.RequestURI()))
+		return
+	}
+
+	body := readHtmlFromWebsite("https://news.ycombinator.com" + r.URL.RequestURI())
+	posts, nextPageLink := parseHtml(body)
+	stringBuilder := createHtml(posts, nextPageLink)
+	page := stringBuilder.String()
+	_, err := fmt.Fprint(w, page)
+	check(err)
+}
+
 func readHtmlFromWebsite(url string) string {
-	// resp is of type Response:
-	// https://pkg.go.dev/net/http#Response
+	/*
+		Get html from url
+	*/
 	resp, err := http.Get(url)
 	check(err)
-
 	defer resp.Body.Close()
 
-	// resp.Body is of type io.ReadCloser (interface for Read() and Close() method)
 	body, err := io.ReadAll(resp.Body)
 	check(err)
 
 	// 0644 is owner read and write, but not execute permissions
 	err = os.WriteFile("hackernews.html", body, 0644)
 	check(err)
-
 	return string(body)
 }
 
-func readHtmlFile() string {
-	fi, _ := os.Open("hackernews.html")
-	defer fi.Close()
-	body, _ := io.ReadAll(fi)
-	return string(body)
-}
-
-func createHtml(domain string, port int, posts []Post, nextPageLink string) strings.Builder {
-	if domain == "http://localhost" {
-		domain = domain + ":" + fmt.Sprint(port)
+func parseHtml(body string) (posts []Post, nextPageLink string) {
+	/*
+		Iterate through HTML response from news.ycombinator.com for posts and the "more" link
+	*/
+	tokenizer := html.NewTokenizer(strings.NewReader(body))
+	for {
+		tokenType := tokenizer.Next()
+		if tokenType == html.ErrorToken {
+			// At the end of the document, but missing nextPageLink
+			// Should probably handle this
+			return
+		} else if tokenType == html.StartTagToken {
+			token := tokenizer.Token()
+			if token.Data == "td" && strings.Contains(token.String(), "align=\"right\" valign=\"top\" class=\"title\"") {
+				// Found a title
+				p := Post{
+					rank:         "",
+					titleLink:    "",
+					title:        "",
+					siteLink:     "",
+					site:         "",
+					score:        "",
+					commentsLink: "",
+					comments:     "",
+				}
+				parsePost(&p, tokenizer)
+				posts = append(posts, p)
+			} else if token.Data == "a" && len(token.Attr) > 1 && token.Attr[1].Val == "morelink" {
+				nextPageLink = token.Attr[0].Val
+				// we have everything we need
+				return
+			}
+		}
 	}
-	fh, err := os.Open("head.html")
-	check(err)
-	defer fh.Close()
-	ff, err := os.Open("foot.html")
-	check(err)
-	defer ff.Close()
-	head, _ := io.ReadAll(fh)
-	foot, _ := io.ReadAll(ff)
-	var stringBuilder strings.Builder
-	stringBuilder.WriteString(string(head))
-	stringBuilder.WriteString(fmt.Sprintf("<h1><a href=\"%s\">Boggle Nogs</a></h1>\n", domain))
-	stringBuilder.WriteString("<div class=\"posts\">\n")
-	for _, post := range posts {
-		stringBuilder.WriteString(fmt.Sprintf("<div class=\"left\">%s</div>\n", post.rank))
-		stringBuilder.WriteString("<div class=\"right\">\n")
-		stringBuilder.WriteString(fmt.Sprintf("<a href=\"%s\">%s</a> ", post.titleLink, post.title))
-		stringBuilder.WriteString(fmt.Sprintf("(<a href=\"%s/%s\">%s</a>)\n", domain, post.siteLink, post.site))
-		stringBuilder.WriteString("<br>\n")
-		stringBuilder.WriteString(fmt.Sprintf("%s\n", post.score))
-		stringBuilder.WriteString(fmt.Sprintf("<a href=\"%s\">%s</a>\n", post.commentsLink, post.comments))
-		stringBuilder.WriteString("</div>\n")
-	}
-	stringBuilder.WriteString("</div>\n")
-	stringBuilder.WriteString(fmt.Sprintf("<a href=\"%s/%s\">%s</a>\n", domain, nextPageLink, "more"))
-	stringBuilder.WriteString(string(foot))
-	return stringBuilder
 }
 
 func parsePost(p *Post, tokenizer *html.Tokenizer) {
@@ -122,7 +148,6 @@ func parsePost(p *Post, tokenizer *html.Tokenizer) {
 				}
 			} else if !titleFound && token.Data == "a" && token.Attr[0].Key == "href" {
 				// titleLink and title
-				// Ask HN posts
 				tokenVal := token.Attr[0].Val
 				var titleLink string
 				if len(tokenVal) > 7 && tokenVal[:8] == "item?id=" {
@@ -141,8 +166,7 @@ func parsePost(p *Post, tokenizer *html.Tokenizer) {
 					token := tokenizer.Token()
 					p.title = token.String()
 				} else {
-					// It should be text, we have an error
-					panic("No Title found")
+					p.title = "TITLE NOT FOUND"
 				}
 				titleFound = true
 			} else if token.Data == "a" && strings.Contains(token.Attr[0].Val, "from?site=") {
@@ -155,8 +179,7 @@ func parsePost(p *Post, tokenizer *html.Tokenizer) {
 					token := tokenizer.Token()
 					p.site = token.String()
 				} else {
-					// It should be text, we have an error
-					panic("No Site found")
+					p.site = "SITE NOT FOUND"
 				}
 			} else if token.Data == "span" && token.Attr[0].Val == "score" {
 				// score
@@ -165,8 +188,7 @@ func parsePost(p *Post, tokenizer *html.Tokenizer) {
 					token := tokenizer.Token()
 					p.score = token.String()
 				} else {
-					// It should be text, we have an error
-					panic("No Score found")
+					p.score = "SCORE NOT FOUND"
 				}
 			} else if titleFound && token.Data == "a" && token.Attr[0].Key == "href" {
 				// comment link and comment
@@ -179,8 +201,7 @@ func parsePost(p *Post, tokenizer *html.Tokenizer) {
 					var stringBuilder strings.Builder
 					stringBuilder.WriteString("https://news.ycombinator.com/")
 					stringBuilder.WriteString(linkVal)
-					commentsLink := stringBuilder.String()
-					p.commentsLink = commentsLink
+					p.commentsLink = stringBuilder.String()
 					p.comments = token.String()
 					commentsLinkFound = true
 				}
@@ -193,79 +214,57 @@ func parsePost(p *Post, tokenizer *html.Tokenizer) {
 	}
 }
 
-func parseHtml(body string) (posts []Post, nextPageLink string) {
-	tokenizer := html.NewTokenizer(strings.NewReader(body))
-	for {
-		tokenType := tokenizer.Next()
-		if tokenType == html.ErrorToken {
-			// At the end of the document, but missing nextPageLink
-			return
-		} else if tokenType == html.StartTagToken {
-			token := tokenizer.Token()
-			// Found a title
-			if token.Data == "td" && strings.Contains(token.String(), "align=\"right\" valign=\"top\" class=\"title\"") {
-				p := Post{
-					rank:         "",
-					titleLink:    "",
-					title:        "",
-					siteLink:     "",
-					site:         "",
-					score:        "",
-					commentsLink: "",
-					comments:     "",
-				}
-				parsePost(&p, tokenizer)
-				posts = append(posts, p)
-			}
-			if token.Data == "a" && len(token.Attr) > 1 && token.Attr[1].Val == "morelink" {
-				nextPageLink = token.Attr[0].Val
-				// we have everything we need
-				return
-			}
-		}
+func createHtml(posts []Post, nextPageLink string) strings.Builder {
+	if domain == "http://localhost" {
+		domain = domain + ":" + fmt.Sprint(port)
 	}
-}
 
-func errorHandler(w http.ResponseWriter, r *http.Request, reason string) {
-	w.WriteHeader(http.StatusNotFound)
-	fmt.Fprint(w, reason)
-	logger.Println(reason)
-}
+	fh, err := os.Open("head.html")
+	check(err)
+	defer fh.Close()
 
-func handleRequest(w http.ResponseWriter, r *http.Request) {
-	logger.Printf("Requested %s%s", domain, r.URL.RequestURI())
-	if !(r.URL.Path == "/" ||
-		regexNextPage.MatchString(r.URL.RawQuery) ||
-		(r.URL.Path == "/from" &&
-			regexSiteLink.MatchString(r.URL.RawQuery))) {
-		errorHandler(w, r, fmt.Sprintf("404: Page %s not found", domain+r.URL.RequestURI()))
-		return
+	ff, err := os.Open("foot.html")
+	check(err)
+	defer ff.Close()
+
+	head, _ := io.ReadAll(fh)
+	foot, _ := io.ReadAll(ff)
+
+	var stringBuilder strings.Builder
+
+	stringBuilder.WriteString(string(head))
+	stringBuilder.WriteString(fmt.Sprintf("<h1><a href=\"%s\">Boggle Nogs</a></h1>\n", domain))
+	stringBuilder.WriteString("<div class=\"posts\">\n")
+
+	for _, post := range posts {
+		stringBuilder.WriteString(fmt.Sprintf("<div class=\"left\">%s</div>\n", post.rank))
+		stringBuilder.WriteString("<div class=\"right\">\n")
+		stringBuilder.WriteString(fmt.Sprintf("<a href=\"%s\">%s</a> ", post.titleLink, post.title))
+		stringBuilder.WriteString(fmt.Sprintf("(<a href=\"%s/%s\">%s</a>)\n", domain, post.siteLink, post.site))
+		stringBuilder.WriteString("<br>\n")
+		stringBuilder.WriteString(fmt.Sprintf("%s\n", post.score))
+		stringBuilder.WriteString(fmt.Sprintf("<a href=\"%s\">%s</a>\n", post.commentsLink, post.comments))
+		stringBuilder.WriteString("</div>\n")
 	}
-	body := readHtmlFromWebsite("https://news.ycombinator.com" + r.URL.RequestURI())
-	//body := readHtmlFile() // for testing
-	posts, nextPageLink := parseHtml(body)
-	stringBuilder := createHtml(domain, port, posts, nextPageLink)
-	page := stringBuilder.String()
-	_, e := fmt.Fprint(w, page)
-	check(e)
-	// purely for debugging purposes
-	/*
-		f, err := os.Create("output.html")
-		check(err)
-		f.WriteString(page)
-		f.Close()
-	*/
+
+	stringBuilder.WriteString("</div>\n")
+	stringBuilder.WriteString(fmt.Sprintf("<a href=\"%s/%s\">%s</a>\n", domain, nextPageLink, "more"))
+	stringBuilder.WriteString(string(foot))
+
+	return stringBuilder
 }
 
 func main() {
 	var domainFlag = flag.String("domain", "http://localhost", "domain name of domain")
 	var portFlag = flag.Int("port", 1616, "port to run boggle nogs on")
+
 	flag.Parse()
+
 	domain = *domainFlag
 	port = *portFlag
 
-	f, e := os.Create("log.log")
-	check(e)
+	f, err := os.Create("log.log")
+	check(err)
 	defer f.Close()
 
 	mw := io.MultiWriter(os.Stdout, f)
@@ -275,6 +274,6 @@ func main() {
 	// match everything
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", handleRequest)
-	e = http.ListenAndServe(":"+fmt.Sprint(port), mux)
-	check(e)
+	err = http.ListenAndServe(":"+fmt.Sprint(port), mux)
+	check(err)
 }
