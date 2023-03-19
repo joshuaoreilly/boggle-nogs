@@ -33,7 +33,7 @@ type Post struct {
 	comments     string
 }
 
-var host string
+var domain string
 var port int
 
 var regexSiteLink = regexp.MustCompile(`(site=)`)
@@ -71,9 +71,9 @@ func readHtmlFile() string {
 	return string(body)
 }
 
-func createHtml(host string, port int, posts []Post, nextPageLink string) strings.Builder {
-	if host == "http://localhost" {
-		host = host + ":" + fmt.Sprint(port)
+func createHtml(domain string, port int, posts []Post, nextPageLink string) strings.Builder {
+	if domain == "http://localhost" {
+		domain = domain + ":" + fmt.Sprint(port)
 	}
 	fh, err := os.Open("head.html")
 	check(err)
@@ -93,14 +93,14 @@ func createHtml(host string, port int, posts []Post, nextPageLink string) string
 		//	post.titleLink, post.title, post.rank, post.commentsLink, post.comments))
 		stringBuilder.WriteString("<div class=\"right\">\n")
 		stringBuilder.WriteString(fmt.Sprintf("<a href=\"%s\">%s</a> ", post.titleLink, post.title))
-		stringBuilder.WriteString(fmt.Sprintf("(<a href=\"%s/%s\">%s</a>)\n", host, post.siteLink, post.site))
+		stringBuilder.WriteString(fmt.Sprintf("(<a href=\"%s/%s\">%s</a>)\n", domain, post.siteLink, post.site))
 		stringBuilder.WriteString("<br>\n")
 		stringBuilder.WriteString(fmt.Sprintf("%s\n", post.score))
 		stringBuilder.WriteString(fmt.Sprintf("<a href=\"%s\">%s</a>\n", post.commentsLink, post.comments))
 		stringBuilder.WriteString("</div>\n")
 	}
 	stringBuilder.WriteString("</div>\n")
-	stringBuilder.WriteString(fmt.Sprintf("<a href=\"%s/%s\">%s</a>\n", host, nextPageLink, "more"))
+	stringBuilder.WriteString(fmt.Sprintf("<a href=\"%s/%s\">%s</a>\n", domain, nextPageLink, "more"))
 	stringBuilder.WriteString(string(foot))
 	return stringBuilder
 }
@@ -255,7 +255,7 @@ func handleRequest(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("https://news.ycombinator.com" + urlEnd)
 	//body := readHtmlFile() // for testing
 	posts, nextPageLink := parseHtml(body)
-	stringBuilder := createHtml(host, port, posts, nextPageLink)
+	stringBuilder := createHtml(domain, port, posts, nextPageLink)
 	page := stringBuilder.String()
 	_, e := fmt.Fprint(w, page)
 	check(e)
@@ -267,10 +267,10 @@ func handleRequest(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	var hostFlag = flag.String("domain", "http://localhost", "domain name of host")
+	var domainFlag = flag.String("domain", "http://localhost", "domain name of domain")
 	var portFlag = flag.Int("port", 1616, "port to run boggle nogs on")
 	flag.Parse()
-	host = *hostFlag
+	domain = *domainFlag
 	port = *portFlag
 
 	// match everything
