@@ -233,20 +233,11 @@ func handleRequest(w http.ResponseWriter, r *http.Request) {
 		regexNextPage.MatchString(r.URL.RawQuery) ||
 		(r.URL.Path == "/from" &&
 			regexSiteLink.MatchString(r.URL.RawQuery))) {
-		errorHandler(w, r, "404: Page not found")
+		errorHandler(w, r, fmt.Sprintf("404: Page %s not found", domain+r.URL.RequestURI()))
 		return
 	}
-	fmt.Print("https://news.ycombinator.com" + r.URL.Path + "\n")
-	var urlEnd string
-	if r.URL.RawQuery != "" {
-		// next page, website articles, etc.
-		urlEnd = r.URL.Path + "?" + r.URL.RawQuery
-	} else {
-		// base URL
-		urlEnd = r.URL.Path
-	}
-	body := readHtmlFromWebsite("https://news.ycombinator.com" + urlEnd)
-	fmt.Println("https://news.ycombinator.com" + urlEnd)
+	body := readHtmlFromWebsite("https://news.ycombinator.com" + r.URL.RequestURI())
+	fmt.Println("https://news.ycombinator.com" + r.URL.RequestURI())
 	//body := readHtmlFile() // for testing
 	posts, nextPageLink := parseHtml(body)
 	stringBuilder := createHtml(domain, port, posts, nextPageLink)
