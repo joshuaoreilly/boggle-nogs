@@ -271,6 +271,9 @@ func main() {
 	logger.SetOutput(mw)
 	logger.SetFlags(log.Ldate | log.Ltime)
 
+	logger.Printf("Links will be generated with domain %s", domain)
+	logger.Printf("Running on port %d", port)
+
 	// match everything
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", handleRequest)
