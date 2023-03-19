@@ -89,9 +89,6 @@ func createHtml(domain string, port int, posts []Post, nextPageLink string) stri
 	stringBuilder.WriteString("<div class=\"posts\">\n")
 	for _, post := range posts {
 		stringBuilder.WriteString(fmt.Sprintf("<div class=\"left\">%s</div>\n", post.rank))
-		//stringBuilder.WriteString(fmt.Sprintf("<div class=\"right\">\n<a href=\"%s\">%s</a>\n"+
-		//	"<br>\n%s points <a href=\"%s\">%s</a></div>\n",
-		//	post.titleLink, post.title, post.rank, post.commentsLink, post.comments))
 		stringBuilder.WriteString("<div class=\"right\">\n")
 		stringBuilder.WriteString(fmt.Sprintf("<a href=\"%s\">%s</a> ", post.titleLink, post.title))
 		stringBuilder.WriteString(fmt.Sprintf("(<a href=\"%s/%s\">%s</a>)\n", domain, post.siteLink, post.site))
@@ -119,7 +116,6 @@ func parsePost(p *Post, tokenizer *html.Tokenizer) {
 				if tokenType == html.TextToken {
 					token := tokenizer.Token()
 					p.rank = strings.Trim(token.String(), ".")
-					//fmt.Printf("Rank: %s\n", p.rank)
 				}
 			} else if !titleFound && token.Data == "a" && token.Attr[0].Key == "href" {
 				// titleLink and title
@@ -136,13 +132,11 @@ func parsePost(p *Post, tokenizer *html.Tokenizer) {
 					titleLink = tokenVal
 				}
 				p.titleLink = titleLink
-				//fmt.Printf("Title Link: %s\n", p.titleLink)
 				// title should immediately follow title link
 				tokenType := tokenizer.Next()
 				if tokenType == html.TextToken {
 					token := tokenizer.Token()
 					p.title = token.String()
-					//fmt.Printf("Title: %s\n", p.title)
 				} else {
 					// It should be text, we have an error
 					panic("No Title found")
@@ -157,7 +151,6 @@ func parsePost(p *Post, tokenizer *html.Tokenizer) {
 				if tokenType == html.TextToken {
 					token := tokenizer.Token()
 					p.site = token.String()
-					//fmt.Printf("Title: %s\n", p.title)
 				} else {
 					// It should be text, we have an error
 					panic("No Site found")
@@ -168,7 +161,6 @@ func parsePost(p *Post, tokenizer *html.Tokenizer) {
 				if tokenType == html.TextToken {
 					token := tokenizer.Token()
 					p.score = token.String()
-					//fmt.Printf("Score: %s\n", p.score)
 				} else {
 					// It should be text, we have an error
 					panic("No Score found")
@@ -187,15 +179,11 @@ func parsePost(p *Post, tokenizer *html.Tokenizer) {
 					commentsLink := stringBuilder.String()
 					p.commentsLink = commentsLink
 					p.comments = token.String()
-					//fmt.Printf("Comments link: %s\n", p.commentsLink)
-					//fmt.Printf("Comments: %s\n", p.comments)
 					commentsLinkFound = true
 				}
-			} else if !commentsLinkFound && token.Data == "tr" && len(token.Attr) > 0 && strings.Contains(token.String(), "spacer") { //token.Data == "tr" { //&& len(token.Attr) > 0 && token.Attr[0].Key == "spacer" {
+			} else if !commentsLinkFound && token.Data == "tr" && len(token.Attr) > 0 && strings.Contains(token.String(), "spacer") {
 				// found a new post without finishing the last one, probably corresponds to the posts of YC
-				// companies that are hiring (they don't have comments or scores), or a post with no comments yet
-				// we'll throw it out when iterating over posts
-				// TODO: handle possible failure to find rank, title, etc.
+				// companies that are hiring (they don't have comments or scores)
 				commentsLinkFound = true
 			}
 		}
@@ -223,7 +211,6 @@ func parseHtml(body string) (posts []Post, nextPageLink string) {
 					commentsLink: "",
 					comments:     "",
 				}
-				// TODO: handle possible failure to find rank, title, etc.
 				parsePost(&p, tokenizer)
 				posts = append(posts, p)
 			}
@@ -252,8 +239,10 @@ func handleRequest(w http.ResponseWriter, r *http.Request) {
 	fmt.Print("https://news.ycombinator.com" + r.URL.Path + "\n")
 	var urlEnd string
 	if r.URL.RawQuery != "" {
+		// next page, website articles, etc.
 		urlEnd = r.URL.Path + "?" + r.URL.RawQuery
 	} else {
+		// base URL
 		urlEnd = r.URL.Path
 	}
 	body := readHtmlFromWebsite("https://news.ycombinator.com" + urlEnd)
