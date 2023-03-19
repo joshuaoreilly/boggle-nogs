@@ -24,6 +24,8 @@ type Post struct {
 	rank         string
 	titleLink    string
 	title        string
+	siteLink     string
+	site         string
 	score        string
 	commentsLink string
 	comments     string
@@ -79,7 +81,8 @@ func createHtml(url string, posts []Post, nextPageLink string) strings.Builder {
 		//	"<br>\n%s points <a href=\"%s\">%s</a></div>\n",
 		//	post.titleLink, post.title, post.rank, post.commentsLink, post.comments))
 		stringBuilder.WriteString("<div class=\"right\">\n")
-		stringBuilder.WriteString(fmt.Sprintf("<a href=\"%s\">%s</a>\n", post.titleLink, post.title))
+		stringBuilder.WriteString(fmt.Sprintf("<a href=\"%s\">%s</a> ", post.titleLink, post.title))
+		stringBuilder.WriteString(fmt.Sprintf("(<a href=\"%s\">%s</a>)\n", post.siteLink, post.site))
 		stringBuilder.WriteString("<br>\n")
 		stringBuilder.WriteString(fmt.Sprintf("%s\n", post.score))
 		stringBuilder.WriteString(fmt.Sprintf("<a href=\"%s\">%s</a>\n", post.commentsLink, post.comments))
@@ -136,6 +139,20 @@ func parsePost(p *Post, tokenizer *html.Tokenizer) {
 					panic("No Title found")
 				}
 				titleFound = true
+			} else if token.Data == "a" && strings.Contains(token.Attr[0].Val, "from?site=") {
+				// site link
+				p.siteLink = token.Attr[0].Val
+				// site should follow span element, which follows site link
+				_ = tokenizer.Next()
+				tokenType := tokenizer.Next()
+				if tokenType == html.TextToken {
+					token := tokenizer.Token()
+					p.site = token.String()
+					//fmt.Printf("Title: %s\n", p.title)
+				} else {
+					// It should be text, we have an error
+					panic("No Site found")
+				}
 			} else if token.Data == "span" && token.Attr[0].Val == "score" {
 				// score
 				tokenType := tokenizer.Next()
@@ -204,6 +221,8 @@ func parseHtml(body string) (posts []Post, nextPageLink string) {
 					rank:         "0",
 					titleLink:    "titleLink",
 					title:        "title",
+					siteLink:     "siteLink",
+					site:         "site",
 					score:        "0",
 					commentsLink: "commentsLink",
 					comments:     "comments",
