@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"os"
 	"regexp"
@@ -35,6 +36,8 @@ type Post struct {
 
 var domain string
 var port int
+
+var logger log.Logger
 
 var regexSiteLink = regexp.MustCompile(`(site=)`)
 var regexNextPage = regexp.MustCompile(`(\/\?p=\d)`)
@@ -226,9 +229,11 @@ func parseHtml(body string) (posts []Post, nextPageLink string) {
 func errorHandler(w http.ResponseWriter, r *http.Request, reason string) {
 	w.WriteHeader(http.StatusNotFound)
 	fmt.Fprint(w, reason)
+	logger.Println(reason)
 }
 
 func handleRequest(w http.ResponseWriter, r *http.Request) {
+	logger.Printf("Requested %s%s", domain, r.URL.RequestURI())
 	if !(r.URL.Path == "/" ||
 		regexNextPage.MatchString(r.URL.RawQuery) ||
 		(r.URL.Path == "/from" &&
@@ -237,7 +242,6 @@ func handleRequest(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	body := readHtmlFromWebsite("https://news.ycombinator.com" + r.URL.RequestURI())
-	fmt.Println("https://news.ycombinator.com" + r.URL.RequestURI())
 	//body := readHtmlFile() // for testing
 	posts, nextPageLink := parseHtml(body)
 	stringBuilder := createHtml(domain, port, posts, nextPageLink)
@@ -245,10 +249,12 @@ func handleRequest(w http.ResponseWriter, r *http.Request) {
 	_, e := fmt.Fprint(w, page)
 	check(e)
 	// purely for debugging purposes
-	f, err := os.Create("output.html")
-	check(err)
-	f.WriteString(page)
-	f.Close()
+	/*
+		f, err := os.Create("output.html")
+		check(err)
+		f.WriteString(page)
+		f.Close()
+	*/
 }
 
 func main() {
@@ -258,9 +264,17 @@ func main() {
 	domain = *domainFlag
 	port = *portFlag
 
+	f, e := os.Create("log.log")
+	check(e)
+	defer f.Close()
+
+	mw := io.MultiWriter(os.Stdout, f)
+	logger.SetOutput(mw)
+	logger.SetFlags(log.Ldate | log.Ltime)
+
 	// match everything
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", handleRequest)
-	e := http.ListenAndServe(":"+fmt.Sprint(port), mux)
+	e = http.ListenAndServe(":"+fmt.Sprint(port), mux)
 	check(e)
 }
