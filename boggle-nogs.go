@@ -219,14 +219,14 @@ func parseHtml(body string) (posts []Post, nextPageLink string) {
 			// Found a title
 			if token.Data == "td" && strings.Contains(token.String(), "align=\"right\" valign=\"top\" class=\"title\"") {
 				p := Post{
-					rank:         "0",
-					titleLink:    "titleLink",
-					title:        "title",
-					siteLink:     "siteLink",
-					site:         "site",
-					score:        "0",
-					commentsLink: "commentsLink",
-					comments:     "comments",
+					rank:         "",
+					titleLink:    "",
+					title:        "",
+					siteLink:     "",
+					site:         "",
+					score:        "",
+					commentsLink: "",
+					comments:     "",
 				}
 				// TODO: handle possible failure to find rank, title, etc.
 				parsePost(&p, tokenizer)
