@@ -64,7 +64,10 @@ func readHtmlFile() string {
 	return string(body)
 }
 
-func createHtml(url string, posts []Post, nextPageLink string) strings.Builder {
+func createHtml(host string, port int, posts []Post, nextPageLink string) strings.Builder {
+	if host == "http://localhost" {
+		host = host + ":" + fmt.Sprint(port)
+	}
 	fh, err := os.Open("head.html")
 	check(err)
 	defer fh.Close()
@@ -83,14 +86,14 @@ func createHtml(url string, posts []Post, nextPageLink string) strings.Builder {
 		//	post.titleLink, post.title, post.rank, post.commentsLink, post.comments))
 		stringBuilder.WriteString("<div class=\"right\">\n")
 		stringBuilder.WriteString(fmt.Sprintf("<a href=\"%s\">%s</a> ", post.titleLink, post.title))
-		stringBuilder.WriteString(fmt.Sprintf("(<a href=\"%s/%s\">%s</a>)\n", url, post.siteLink, post.site))
+		stringBuilder.WriteString(fmt.Sprintf("(<a href=\"%s/%s\">%s</a>)\n", host, post.siteLink, post.site))
 		stringBuilder.WriteString("<br>\n")
 		stringBuilder.WriteString(fmt.Sprintf("%s\n", post.score))
 		stringBuilder.WriteString(fmt.Sprintf("<a href=\"%s\">%s</a>\n", post.commentsLink, post.comments))
 		stringBuilder.WriteString("</div>\n")
 	}
 	stringBuilder.WriteString("</div>\n")
-	stringBuilder.WriteString(fmt.Sprintf("<a href=\"%s/%s\">%s</a>\n", url, nextPageLink, "more"))
+	stringBuilder.WriteString(fmt.Sprintf("<a href=\"%s/%s\">%s</a>\n", host, nextPageLink, "more"))
 	stringBuilder.WriteString(string(foot))
 	return stringBuilder
 }
@@ -242,15 +245,17 @@ func parseHtml(body string) (posts []Post, nextPageLink string) {
 }
 
 func main() {
-	var urlFlag = flag.String("domain", "http://localhost", "domain name of host")
+	var hostFlag = flag.String("domain", "http://localhost", "domain name of host")
+	var portFlag = flag.Int("port", 1616, "port to run boggle nogs on")
 	flag.Parse()
-	url := *urlFlag
+	host := *hostFlag
+	port := *portFlag
 	body := readHtmlFromWebsite("https://news.ycombinator.com/")
 	//body := readHtmlFile() // for testing
 	posts, nextPageLink := parseHtml(body)
 	printPosts(posts)
 	fmt.Println(nextPageLink)
-	stringBuilder := createHtml(url, posts, nextPageLink)
+	stringBuilder := createHtml(host, port, posts, nextPageLink)
 	page := stringBuilder.String()
 	fmt.Println(len(page))
 	// purely for debugging purposes
