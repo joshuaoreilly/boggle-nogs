@@ -236,13 +236,17 @@ func parseHtml(body string) (posts []Post, nextPageLink string) {
 	}
 }
 
+func errorHandler(w http.ResponseWriter, r *http.Request, reason string) {
+	w.WriteHeader(http.StatusNotFound)
+	fmt.Fprint(w, reason)
+}
+
 func handleRequest(w http.ResponseWriter, r *http.Request) {
 	if !(r.URL.Path == "/" ||
 		regexNextPage.MatchString(r.URL.RawQuery) ||
 		(r.URL.Path == "/from" &&
 			regexSiteLink.MatchString(r.URL.RawQuery))) {
-		w.WriteHeader(http.StatusNotFound)
-		fmt.Fprint(w, "404: page not found")
+		errorHandler(w, r, "404: Page not found")
 		return
 	}
 	fmt.Print("https://news.ycombinator.com" + r.URL.Path + "\n")
