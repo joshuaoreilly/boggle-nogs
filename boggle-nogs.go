@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"regexp"
 	"strings"
 
 	"golang.org/x/net/html"
@@ -13,10 +14,9 @@ import (
 
 /*
 TODO:
-- Add websites' root url beside title
-- Remove unecessary comments
+- Fix broken website page copying (since it has no rank)
+Remove unecessary comments
 - Figure out whether to defer or actively close
-- Actually write HTTP server!
 - Use firebase api instead of scraping website
 - Add block-list support
 */
@@ -31,6 +31,12 @@ type Post struct {
 	commentsLink string
 	comments     string
 }
+
+var host string
+var port int
+
+var regexSiteLink = regexp.MustCompile(`(site=)`)
+var regexNextPage = regexp.MustCompile(`(\/\?p=\d)`)
 
 func check(e error) {
 	if e != nil {
@@ -244,24 +250,45 @@ func parseHtml(body string) (posts []Post, nextPageLink string) {
 	}
 }
 
-func main() {
-	var hostFlag = flag.String("domain", "http://localhost", "domain name of host")
-	var portFlag = flag.Int("port", 1616, "port to run boggle nogs on")
-	flag.Parse()
-	host := *hostFlag
-	port := *portFlag
-	body := readHtmlFromWebsite("https://news.ycombinator.com/")
+func handleRequest(w http.ResponseWriter, r *http.Request) {
+	if !(r.URL.Path == "/" ||
+		regexNextPage.MatchString(r.URL.RawQuery) ||
+		(r.URL.Path == "/from" &&
+			regexSiteLink.MatchString(r.URL.RawQuery))) {
+		panic(fmt.Sprintf("Unsupported path: %s", r.URL.Path))
+	}
+	fmt.Print("https://news.ycombinator.com" + r.URL.Path + "\n")
+	var urlEnd string
+	if r.URL.RawQuery != "" {
+		urlEnd = r.URL.Path + "?" + r.URL.RawQuery
+	} else {
+		urlEnd = r.URL.Path
+	}
+	body := readHtmlFromWebsite("https://news.ycombinator.com" + urlEnd)
+	fmt.Println("https://news.ycombinator.com" + urlEnd)
 	//body := readHtmlFile() // for testing
 	posts, nextPageLink := parseHtml(body)
-	printPosts(posts)
-	fmt.Println(nextPageLink)
 	stringBuilder := createHtml(host, port, posts, nextPageLink)
 	page := stringBuilder.String()
-	fmt.Println(len(page))
+	_, e := fmt.Fprint(w, page)
+	check(e)
 	// purely for debugging purposes
 	f, err := os.Create("output.html")
 	check(err)
 	f.WriteString(page)
 	f.Close()
-	//fmt.Printf("Number of posts found: %d\n", len(posts))
+}
+
+func main() {
+	var hostFlag = flag.String("domain", "http://localhost", "domain name of host")
+	var portFlag = flag.Int("port", 1616, "port to run boggle nogs on")
+	flag.Parse()
+	host = *hostFlag
+	port = *portFlag
+
+	// match everything
+	mux := http.NewServeMux()
+	mux.HandleFunc("/", handleRequest)
+	e := http.ListenAndServe(":"+fmt.Sprint(port), mux)
+	check(e)
 }
