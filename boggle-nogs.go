@@ -85,6 +85,7 @@ func createHtml(domain string, port int, posts []Post, nextPageLink string) stri
 	foot, _ := io.ReadAll(ff)
 	var stringBuilder strings.Builder
 	stringBuilder.WriteString(string(head))
+	stringBuilder.WriteString(fmt.Sprintf("<h1><a href=\"%s\">Boggle Nogs</a></h1>\n", domain))
 	stringBuilder.WriteString("<div class=\"posts\">\n")
 	for _, post := range posts {
 		stringBuilder.WriteString(fmt.Sprintf("<div class=\"left\">%s</div>\n", post.rank))
