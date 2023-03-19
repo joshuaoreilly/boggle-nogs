@@ -14,7 +14,7 @@ import (
 
 /*
 TODO:
-- Fix broken website page copying (since it has no rank)
+- Add dates to post details?
 - Properly handle errors (don't just murder the program)
 - Remove unecessary comments
 - Figure out whether to defer or actively close
@@ -119,9 +119,6 @@ func parsePost(p *Post, tokenizer *html.Tokenizer) {
 					token := tokenizer.Token()
 					p.rank = strings.Trim(token.String(), ".")
 					//fmt.Printf("Rank: %s\n", p.rank)
-				} else {
-					// It should be text, we have an error
-					panic("No Rank found")
 				}
 			} else if !titleFound && token.Data == "a" && token.Attr[0].Key == "href" {
 				// titleLink and title
