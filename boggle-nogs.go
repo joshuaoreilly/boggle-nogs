@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"io"
 	"net/http"
@@ -82,14 +83,14 @@ func createHtml(url string, posts []Post, nextPageLink string) strings.Builder {
 		//	post.titleLink, post.title, post.rank, post.commentsLink, post.comments))
 		stringBuilder.WriteString("<div class=\"right\">\n")
 		stringBuilder.WriteString(fmt.Sprintf("<a href=\"%s\">%s</a> ", post.titleLink, post.title))
-		stringBuilder.WriteString(fmt.Sprintf("(<a href=\"%s\">%s</a>)\n", post.siteLink, post.site))
+		stringBuilder.WriteString(fmt.Sprintf("(<a href=\"%s/%s\">%s</a>)\n", url, post.siteLink, post.site))
 		stringBuilder.WriteString("<br>\n")
 		stringBuilder.WriteString(fmt.Sprintf("%s\n", post.score))
 		stringBuilder.WriteString(fmt.Sprintf("<a href=\"%s\">%s</a>\n", post.commentsLink, post.comments))
 		stringBuilder.WriteString("</div>\n")
 	}
 	stringBuilder.WriteString("</div>\n")
-	stringBuilder.WriteString(fmt.Sprintf("<a href=\"%s\">%s</a>\n", (url + "/" + nextPageLink + "\n"), "more"))
+	stringBuilder.WriteString(fmt.Sprintf("<a href=\"%s/%s\">%s</a>\n", url, nextPageLink, "more"))
 	stringBuilder.WriteString(string(foot))
 	return stringBuilder
 }
@@ -241,7 +242,9 @@ func parseHtml(body string) (posts []Post, nextPageLink string) {
 }
 
 func main() {
-	url := "https://bogglenogs.com"
+	var urlFlag = flag.String("domain", "http://localhost", "domain name of host")
+	flag.Parse()
+	url := *urlFlag
 	body := readHtmlFromWebsite("https://news.ycombinator.com/")
 	//body := readHtmlFile() // for testing
 	posts, nextPageLink := parseHtml(body)
