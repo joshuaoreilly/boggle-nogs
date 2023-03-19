@@ -240,7 +240,9 @@ func handleRequest(w http.ResponseWriter, r *http.Request) {
 		regexNextPage.MatchString(r.URL.RawQuery) ||
 		(r.URL.Path == "/from" &&
 			regexSiteLink.MatchString(r.URL.RawQuery))) {
-		panic(fmt.Sprintf("Unsupported path: %s", r.URL.Path))
+		w.WriteHeader(http.StatusNotFound)
+		fmt.Fprint(w, "404: page not found")
+		return
 	}
 	fmt.Print("https://news.ycombinator.com" + r.URL.Path + "\n")
 	var urlEnd string
