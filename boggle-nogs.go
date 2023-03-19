@@ -15,7 +15,8 @@ import (
 /*
 TODO:
 - Fix broken website page copying (since it has no rank)
-Remove unecessary comments
+- Properly handle errors (don't just murder the program)
+- Remove unecessary comments
 - Figure out whether to defer or actively close
 - Use firebase api instead of scraping website
 - Add block-list support
