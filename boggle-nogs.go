@@ -92,8 +92,8 @@ func readHtmlFromWebsite(url string) string {
 	check(err)
 
 	// 0644 is owner read and write, but not execute permissions
-	err = os.WriteFile("hackernews.html", body, 0644)
-	check(err)
+	// err = os.WriteFile("hackernews.html", body, 0644)
+	// check(err)
 	return string(body)
 }
 
