@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"flag"
 	"fmt"
 	"io"
@@ -15,6 +16,8 @@ import (
 
 /*
 TODO:
+- Smarter way of handling ignore lists (trie?)
+- Implement string-in-title ignoring
 - Add dates to post details?
 - Use firebase api instead of scraping website
 - Add block-list support
@@ -34,6 +37,8 @@ type Post struct {
 var domain string
 var port int
 var local bool
+
+var ignoredSites []string
 
 var logger log.Logger
 
@@ -122,8 +127,10 @@ func parseHtml(body string) (posts []Post, nextPageLink string) {
 					commentsLink: "",
 					comments:     "",
 				}
-				parsePost(&p, tokenizer)
-				posts = append(posts, p)
+				ignorePost := parsePost(&p, tokenizer)
+				if !ignorePost {
+					posts = append(posts, p)
+				}
 			} else if token.Data == "a" && len(token.Attr) > 1 && token.Attr[1].Val == "morelink" {
 				nextPageLink = token.Attr[0].Val
 				// we have everything we need
@@ -133,9 +140,10 @@ func parseHtml(body string) (posts []Post, nextPageLink string) {
 	}
 }
 
-func parsePost(p *Post, tokenizer *html.Tokenizer) {
+func parsePost(p *Post, tokenizer *html.Tokenizer) bool {
 	commentsLinkFound := false
 	titleFound := false
+	ignorePost := false
 	for !commentsLinkFound {
 		tokenType := tokenizer.Next()
 		if tokenType == html.StartTagToken {
@@ -171,6 +179,12 @@ func parsePost(p *Post, tokenizer *html.Tokenizer) {
 				}
 				titleFound = true
 			} else if token.Data == "a" && strings.Contains(token.Attr[0].Val, "from?site=") {
+				site := strings.TrimPrefix(token.Attr[0].Val, "from?site=")
+				if isSiteIgnored(site) {
+					logger.Printf("Site %s ignored", site)
+					ignorePost = true
+					break
+				}
 				// site link
 				p.siteLink = token.Attr[0].Val
 				// site should follow span element, which follows site link
@@ -213,6 +227,17 @@ func parsePost(p *Post, tokenizer *html.Tokenizer) {
 			}
 		}
 	}
+	return ignorePost
+}
+
+func isSiteIgnored(site string) bool {
+	ignore := false
+	for _, ignoreSite := range ignoredSites {
+		if site == ignoreSite {
+			ignore = true
+		}
+	}
+	return ignore
 }
 
 func createHtml(posts []Post, nextPageLink string) strings.Builder {
@@ -256,13 +281,28 @@ func createHtml(posts []Post, nextPageLink string) strings.Builder {
 }
 
 func main() {
-	f, err := os.Create("log.log")
+	logFile, err := os.Create("log.log")
 	check(err)
-	defer f.Close()
+	defer logFile.Close()
 
-	mw := io.MultiWriter(os.Stdout, f)
+	mw := io.MultiWriter(os.Stdout, logFile)
 	logger.SetOutput(mw)
 	logger.SetFlags(log.Ldate | log.Ltime)
+
+	ignoreSite, err := os.Open("ignore-site.txt")
+	check(err)
+	defer logFile.Close()
+
+	scanner := bufio.NewScanner(ignoreSite)
+	for scanner.Scan() {
+		ignoredSites = append(ignoredSites, scanner.Text())
+	}
+
+	/*
+		ignoreTitle, err := os.Open("ignore-title.txt")
+		check(err)
+		defer logFile.Close()
+	*/
 
 	var domainFlag = flag.String("domain", "", "domain name of domain, if NOT behind proxy")
 	var portFlag = flag.Int("port", 1616, "port to run boggle nogs on")
