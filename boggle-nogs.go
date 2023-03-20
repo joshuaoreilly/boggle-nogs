@@ -278,8 +278,6 @@ func main() {
 
 	if local {
 		domain = "http://localhost"
-	} else if domain == "" {
-		logger.Fatalln("Didn't provide --domain or set --local to true")
 	}
 
 	logger.Printf("Links will be generated with domain %s", domain)
