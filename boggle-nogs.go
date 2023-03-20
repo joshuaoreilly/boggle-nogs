@@ -219,7 +219,7 @@ func parsePost(p *Post, tokenizer *html.Tokenizer) {
 
 func createHtml(posts []Post, nextPageLink string) strings.Builder {
 	if domain == "http://localhost" {
-		domain = domain + ":" + fmt.Sprint(port) + "/"
+		domain = domain + ":" + fmt.Sprint(port)
 	}
 
 	fh, err := os.Open("head.html")
@@ -243,7 +243,7 @@ func createHtml(posts []Post, nextPageLink string) strings.Builder {
 		stringBuilder.WriteString(fmt.Sprintf("<div class=\"left\">%s</div>\n", post.rank))
 		stringBuilder.WriteString("<div class=\"right\">\n")
 		stringBuilder.WriteString(fmt.Sprintf("<a href=\"%s\">%s</a> ", post.titleLink, post.title))
-		stringBuilder.WriteString(fmt.Sprintf("(<a href=\"%s%s\">%s</a>)\n", domain, post.siteLink, post.site))
+		stringBuilder.WriteString(fmt.Sprintf("(<a href=\"%s/%s\">%s</a>)\n", domain, post.siteLink, post.site))
 		stringBuilder.WriteString("<br>\n")
 		stringBuilder.WriteString(fmt.Sprintf("%s\n", post.score))
 		stringBuilder.WriteString(fmt.Sprintf("<a href=\"%s\">%s</a>\n", post.commentsLink, post.comments))
@@ -251,14 +251,22 @@ func createHtml(posts []Post, nextPageLink string) strings.Builder {
 	}
 
 	stringBuilder.WriteString("</div>\n")
-	stringBuilder.WriteString(fmt.Sprintf("<a href=\"%s%s\">%s</a>\n", domain, nextPageLink, "more"))
+	stringBuilder.WriteString(fmt.Sprintf("<a href=\"%s/%s\">%s</a>\n", domain, nextPageLink, "more"))
 	stringBuilder.WriteString(string(foot))
 
 	return stringBuilder
 }
 
 func main() {
-	var domainFlag = flag.String("domain", "/", "domain name of domain, if NOT behind proxy")
+	f, err := os.Create("log.log")
+	check(err)
+	defer f.Close()
+
+	mw := io.MultiWriter(os.Stdout, f)
+	logger.SetOutput(mw)
+	logger.SetFlags(log.Ldate | log.Ltime)
+
+	var domainFlag = flag.String("domain", "", "domain name of domain, if NOT behind proxy")
 	var portFlag = flag.Int("port", 1616, "port to run boggle nogs on")
 	var localFlag = flag.Bool("local", false, "if running on localhost")
 
@@ -268,21 +276,11 @@ func main() {
 	port = *portFlag
 	local = *localFlag
 
-	if domain != "/" {
-		domain += "/"
-	}
-
 	if local {
 		domain = "http://localhost"
+	} else if domain == "" {
+		logger.Fatalln("Didn't provide --domain or set --local to true")
 	}
-
-	f, err := os.Create("log.log")
-	check(err)
-	defer f.Close()
-
-	mw := io.MultiWriter(os.Stdout, f)
-	logger.SetOutput(mw)
-	logger.SetFlags(log.Ldate | log.Ltime)
 
 	logger.Printf("Links will be generated with domain %s", domain)
 	logger.Printf("Running on port %d", port)
