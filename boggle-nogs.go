@@ -18,6 +18,8 @@ import (
 TODO:
 - Smarter way of handling ignore lists (trie?)
 - Implement string-in-title ignoring
+- Standardize ignore-naming (file, variables, etc.)
+is it ignore, ignored, site, sites, etc.?
 - Add dates to post details?
 - Use firebase api instead of scraping website
 - Add block-list support
