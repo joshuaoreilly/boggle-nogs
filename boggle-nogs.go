@@ -236,22 +236,22 @@ func createHtml(posts []Post, nextPageLink string) strings.Builder {
 	var stringBuilder strings.Builder
 
 	stringBuilder.WriteString(string(head))
-	stringBuilder.WriteString("<h1><a href=\"/\">Boggle Nogs</a></h1>\n")
+	stringBuilder.WriteString("<h1><a class=\"title\" href=\"/\">Boggle Nogs</a></h1>\n")
 	stringBuilder.WriteString("<div class=\"posts\">\n")
 
 	for _, post := range posts {
-		stringBuilder.WriteString(fmt.Sprintf("<div class=\"left\">%s</div>\n", post.rank))
+		stringBuilder.WriteString(fmt.Sprintf("<div class=\"left\"><span class=\"grey\">%s</span></div>\n", post.rank))
 		stringBuilder.WriteString("<div class=\"right\">\n")
-		stringBuilder.WriteString(fmt.Sprintf("<a href=\"%s\">%s</a> ", post.titleLink, post.title))
-		stringBuilder.WriteString(fmt.Sprintf("(<a href=\"/%s\">%s</a>)\n", post.siteLink, post.site))
+		stringBuilder.WriteString(fmt.Sprintf("<a class=\"black\" href=\"%s\">%s</a> ", post.titleLink, post.title))
+		stringBuilder.WriteString(fmt.Sprintf("<span class=\"grey\">(</span><a class=\"grey\" href=\"/%s\">%s</a><span class=\"grey\">)</span>\n", post.siteLink, post.site))
 		stringBuilder.WriteString("<br>\n")
-		stringBuilder.WriteString(fmt.Sprintf("%s\n", post.score))
-		stringBuilder.WriteString(fmt.Sprintf("<a href=\"%s\">%s</a>\n", post.commentsLink, post.comments))
+		stringBuilder.WriteString(fmt.Sprintf("<span class=\"grey\">%s</span>\n", post.score))
+		stringBuilder.WriteString(fmt.Sprintf("<a class=\"grey\" href=\"%s\">%s</a>\n", post.commentsLink, post.comments))
 		stringBuilder.WriteString("</div>\n")
 	}
 
 	stringBuilder.WriteString("</div>\n")
-	stringBuilder.WriteString(fmt.Sprintf("<a href=\"/%s\">%s</a>\n", nextPageLink, "more"))
+	stringBuilder.WriteString(fmt.Sprintf("<a class=\"black\" href=\"/%s\">%s</a>\n", nextPageLink, "more"))
 	stringBuilder.WriteString(string(foot))
 
 	return stringBuilder
