@@ -40,8 +40,8 @@ var domain string
 var port int
 var local bool
 
-var ignoredSites []string
-var ignoredTitles []string
+var ignoredSites []*regexp.Regexp
+var ignoredTitles []*regexp.Regexp
 
 var logger log.Logger
 
@@ -189,7 +189,7 @@ func parsePost(p *Post, tokenizer *html.Tokenizer) bool {
 			} else if token.Data == "a" && strings.Contains(token.Attr[0].Val, "from?site=") {
 				site := strings.TrimPrefix(token.Attr[0].Val, "from?site=")
 				if isSiteIgnored(site) {
-					logger.Printf("Site %s ignored", site)
+					logger.Printf("Site ignored: %s", site)
 					ignorePost = true
 					break
 				}
@@ -240,8 +240,8 @@ func parsePost(p *Post, tokenizer *html.Tokenizer) bool {
 
 func isTitleIgnored(title string) bool {
 	ignore := false
-	for _, ignoreTitle := range ignoredTitles {
-		if strings.Contains(title, ignoreTitle) {
+	for _, r := range ignoredTitles {
+		if r.MatchString(title) {
 			ignore = true
 			break
 		}
@@ -251,8 +251,8 @@ func isTitleIgnored(title string) bool {
 
 func isSiteIgnored(site string) bool {
 	ignore := false
-	for _, ignoreSite := range ignoredSites {
-		if strings.Contains(site, ignoreSite) {
+	for _, r := range ignoredSites {
+		if r.MatchString(site) {
 			ignore = true
 			break
 		}
@@ -315,7 +315,12 @@ func main() {
 
 	scanner := bufio.NewScanner(ignoreSite)
 	for scanner.Scan() {
-		ignoredSites = append(ignoredSites, scanner.Text())
+		r, err := regexp.Compile(scanner.Text())
+		if err != nil {
+			logger.Printf("Invalid site regex expression, will be ignored: %s", scanner.Text())
+		} else {
+			ignoredSites = append(ignoredSites, r)
+		}
 	}
 
 	ignoreTitle, err := os.Open("ignore-title.txt")
@@ -324,7 +329,12 @@ func main() {
 
 	scanner = bufio.NewScanner(ignoreTitle)
 	for scanner.Scan() {
-		ignoredTitles = append(ignoredTitles, scanner.Text())
+		r, err := regexp.Compile(scanner.Text())
+		if err != nil {
+			logger.Printf("Invalid title regex expression, will be ignored: %s", scanner.Text())
+		} else {
+			ignoredTitles = append(ignoredTitles, r)
+		}
 	}
 
 	var domainFlag = flag.String("domain", "", "domain name of domain, if NOT behind proxy")
