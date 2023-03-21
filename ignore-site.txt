@@ -5,3 +5,4 @@ washingtonpost.com
 bloomberg.com
 ycombinator.com
 economist.com
+wsj.com
