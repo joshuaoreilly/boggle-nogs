@@ -10,6 +10,7 @@ import (
 	"os"
 	"regexp"
 	"strings"
+	"time"
 
 	"golang.org/x/net/html"
 )
@@ -48,6 +49,8 @@ var logger log.Logger
 var regexSiteLink = regexp.MustCompile(`(site=)`)
 var regexNextPage = regexp.MustCompile(`(\/\?p=\d)`)
 
+var client http.Client
+
 func check(err error) {
 	if err != nil {
 		panic(err)
@@ -80,29 +83,43 @@ func handleRequest(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	body := readHtmlFromWebsite("https://news.ycombinator.com" + r.URL.RequestURI())
+	body, err := readHtmlFromWebsite("https://news.ycombinator.com" + r.URL.RequestURI())
+	if err != nil {
+		logger.Println(err)
+		_, err := fmt.Fprint(w, err)
+		if err != nil {
+			logger.Printf("Unable to send http response with error: %s", err)
+		}
+		return
+	}
 	posts, nextPageLink := parseHtml(body)
 	stringBuilder := createHtml(posts, nextPageLink)
 	page := stringBuilder.String()
-	_, err := fmt.Fprint(w, page)
-	check(err)
+	_, err = fmt.Fprint(w, page)
+	if err != nil {
+		logger.Printf("Unable to send http response with error: %s", err)
+	}
 }
 
-func readHtmlFromWebsite(url string) string {
+func readHtmlFromWebsite(url string) (string, error) {
 	/*
 		Get html from url
 	*/
-	resp, err := http.Get(url)
-	check(err)
+	resp, err := client.Get(url)
+	if err != nil {
+		return "", fmt.Errorf("unable to reach %s", url)
+	}
 	defer resp.Body.Close()
 
 	body, err := io.ReadAll(resp.Body)
-	check(err)
+	if err != nil {
+		return "", fmt.Errorf("unable to read body of response from %s", url)
+	}
 
 	// 0644 is owner read and write, but not execute permissions
 	// err = os.WriteFile("hackernews.html", body, 0644)
 	// check(err)
-	return string(body)
+	return string(body), nil
 }
 
 func parseHtml(body string) (posts []Post, nextPageLink string) {
@@ -353,6 +370,10 @@ func main() {
 
 	logger.Printf("Links will be generated with domain %s", domain)
 	logger.Printf("Running on port %d", port)
+
+	client = http.Client{
+		Timeout: 30 * time.Second,
+	}
 
 	// match everything
 	mux := http.NewServeMux()
