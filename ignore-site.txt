@@ -3,3 +3,4 @@ forbes.com
 cnbc.com
 washingtonpost.com
 bloomberg.com
+ycombinator.com
