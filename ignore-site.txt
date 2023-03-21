@@ -6,6 +6,7 @@ bloomberg.com
 ycombinator.com
 economist.com
 wsj.com
-ft.com
+^ft.com$
 vice.com
 nytimes.com
+cnn.com
