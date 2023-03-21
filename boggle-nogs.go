@@ -321,9 +321,14 @@ func main() {
 
 	scanner := bufio.NewScanner(ignoreSite)
 	for scanner.Scan() {
-		r, err := regexp.Compile(scanner.Text())
+		siteExpr := scanner.Text()
+		if siteExpr == "" {
+			// blank line will match everything if we let it become a RegEx
+			continue
+		}
+		r, err := regexp.Compile(siteExpr)
 		if err != nil {
-			logger.Printf("Invalid site regex expression, will be ignored: %s", scanner.Text())
+			logger.Printf("Invalid site regex expression, will be ignored: %s", siteExpr)
 		} else {
 			ignoredSites = append(ignoredSites, r)
 		}
@@ -335,9 +340,14 @@ func main() {
 
 	scanner = bufio.NewScanner(ignoreTitle)
 	for scanner.Scan() {
-		r, err := regexp.Compile(scanner.Text())
+		titleExpr := scanner.Text()
+		if titleExpr == "" {
+			// blank line will match everything if we let it become a RegEx
+			continue
+		}
+		r, err := regexp.Compile(titleExpr)
 		if err != nil {
-			logger.Printf("Invalid title regex expression, will be ignored: %s", scanner.Text())
+			logger.Printf("Invalid title regex expression, will be ignored: %s", titleExpr)
 		} else {
 			ignoredTitles = append(ignoredTitles, r)
 		}
