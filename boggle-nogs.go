@@ -235,8 +235,9 @@ func parsePost(p *Post, tokenizer *html.Tokenizer) bool {
 func isSiteIgnored(site string) bool {
 	ignore := false
 	for _, ignoreSite := range ignoredSites {
-		if site == ignoreSite {
+		if strings.Contains(site, ignoreSite) {
 			ignore = true
+			break
 		}
 	}
 	return ignore
