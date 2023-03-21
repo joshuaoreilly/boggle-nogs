@@ -17,12 +17,12 @@ import (
 
 /*
 TODO:
-- Smarter way of handling ignore lists (trie?)
-- Fix ft.com being ignored also ignoring microsoft.com
+- Make docker image
 - Standardize ignore-naming (file, variables, etc.)
+- Smarter way of handling ignore lists (trie?)
 is it ignore, ignored, site, sites, etc.?
 - Add dates to post details?
-- Use firebase api instead of scraping website
+- Use firebase api instead of scraping website?
 - Add block-list support
 */
 
