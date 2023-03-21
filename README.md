@@ -14,6 +14,10 @@ So, Boggle Nogs, a front-end that can filter out content that I would otherwise 
 And for you, it's whatever you'd like it to be.
 Ignore submissions from your arch-nemesis, shun the latest developments in the impending world takeover by frogs, or add `.*` to your `ignore-titles.txt` file for the most sophisticated experience.
 
+## Requirements
+
+[Go](https://go.dev/); I'm currently using version 1.19, but I suspect it'll work with older or newer versions.
+
 ## Installation
 
 Clone the repo, open the main folder, and run `go build`.
