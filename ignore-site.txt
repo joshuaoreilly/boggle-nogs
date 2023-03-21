@@ -4,3 +4,4 @@ cnbc.com
 washingtonpost.com
 bloomberg.com
 ycombinator.com
+economist.com
