@@ -17,7 +17,7 @@ import (
 /*
 TODO:
 - Smarter way of handling ignore lists (trie?)
-- Implement string-in-title ignoring
+- Fix ft.com being ignored also ignoring microsoft.com
 - Standardize ignore-naming (file, variables, etc.)
 is it ignore, ignored, site, sites, etc.?
 - Add dates to post details?
@@ -41,6 +41,7 @@ var port int
 var local bool
 
 var ignoredSites []string
+var ignoredTitles []string
 
 var logger log.Logger
 
@@ -175,6 +176,11 @@ func parsePost(p *Post, tokenizer *html.Tokenizer) bool {
 				tokenType := tokenizer.Next()
 				if tokenType == html.TextToken {
 					token := tokenizer.Token()
+					if isTitleIgnored(token.String()) {
+						logger.Printf("Title ignored: %s", token.String())
+						ignorePost = true
+						break
+					}
 					p.title = token.String()
 				} else {
 					p.title = "TITLE NOT FOUND"
@@ -230,6 +236,17 @@ func parsePost(p *Post, tokenizer *html.Tokenizer) bool {
 		}
 	}
 	return ignorePost
+}
+
+func isTitleIgnored(title string) bool {
+	ignore := false
+	for _, ignoreTitle := range ignoredTitles {
+		if strings.Contains(title, ignoreTitle) {
+			ignore = true
+			break
+		}
+	}
+	return ignore
 }
 
 func isSiteIgnored(site string) bool {
@@ -301,11 +318,14 @@ func main() {
 		ignoredSites = append(ignoredSites, scanner.Text())
 	}
 
-	/*
-		ignoreTitle, err := os.Open("ignore-title.txt")
-		check(err)
-		defer logFile.Close()
-	*/
+	ignoreTitle, err := os.Open("ignore-title.txt")
+	check(err)
+	defer logFile.Close()
+
+	scanner = bufio.NewScanner(ignoreTitle)
+	for scanner.Scan() {
+		ignoredTitles = append(ignoredTitles, scanner.Text())
+	}
 
 	var domainFlag = flag.String("domain", "", "domain name of domain, if NOT behind proxy")
 	var portFlag = flag.Int("port", 1616, "port to run boggle nogs on")
