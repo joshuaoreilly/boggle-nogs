@@ -354,7 +354,7 @@ func main() {
 	}
 
 	var domainFlag = flag.String("domain", "", "domain name of domain, if NOT behind proxy")
-	var portFlag = flag.Int("port", 1616, "port to run boggle nogs on")
+	var portFlag = flag.Int("port", 8080, "port to run boggle nogs on")
 	var localFlag = flag.Bool("local", false, "if running on localhost")
 
 	flag.Parse()
