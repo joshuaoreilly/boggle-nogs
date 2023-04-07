@@ -19,7 +19,7 @@ Ignore submissions from your arch-nemesis, shun the latest developments in the i
 
 [Go](https://go.dev/); I'm currently using version 1.19, but I suspect it'll work with older or newer versions.
 
-## Installation
+## Building
 
 Clone the repo, open the main folder, and run `go build`.
 
@@ -36,6 +36,8 @@ Run:
 ### Command line arguments
 
 `--port`: specify the port to run on
+
+`--ignore`: specify folder which contains `ignore-sites.txt` and `ignore-titles.txt`. If not given, will assume the current directory is where they are found.
 
 There are technically other arguments, but considering I don't think they do anything or work, I'd just ignore them.
 
@@ -71,7 +73,8 @@ Likewise, for ignoring all submission titles that contain the word "Frog", regar
 
 ## TODO
 
+- [ ] Allow for head.html, etc. to be stored somewhere else
 - [ ] Create function to handle creating regex to avoid repetitive code
 - [ ] Build docker image
-- [ ] Decide on and standardize ignore-naming (is it ignore? ignored? blocked? etc.)
+- [x] Decide on and standardize ignore-naming (is it ignore? ignored? blocked? etc.)
 - [x] Grey text alternative with better background contrast

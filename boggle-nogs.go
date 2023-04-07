@@ -341,25 +341,25 @@ func main() {
 
 	if ignorePath == "" {
 		// assume they're in the current folder
-		ignoreSitePath = "./ignore-site.txt"
-		ignoreTitlePath = "./ignore-title.txt"
+		ignoreSitePath = "./ignore-sites.txt"
+		ignoreTitlePath = "./ignore-titles.txt"
 	} else {
 		stringBuilder.WriteString(ignorePath)
-		stringBuilder.WriteString("/ignore-site.txt")
+		stringBuilder.WriteString("/ignore-sites.txt")
 		ignoreSitePath = stringBuilder.String()
 		stringBuilder.Reset()
 		stringBuilder.WriteString(ignorePath)
-		stringBuilder.WriteString("/ignore-title.txt")
+		stringBuilder.WriteString("/ignore-titles.txt")
 		ignoreTitlePath = stringBuilder.String()
 	}
 
 	ignoreSite, err := os.Open(ignoreSitePath)
 	var scanner *bufio.Scanner
 	if err != nil {
-		logger.Printf("Couldn't find ignore-site.txt")
+		logger.Printf("Couldn't find ignore-sites.txt")
 		scanner = bufio.NewScanner(strings.NewReader(""))
 	} else {
-		logger.Printf("Found ignore-site.txt")
+		logger.Printf("Found ignore-sites.txt")
 		scanner = bufio.NewScanner(ignoreSite)
 	}
 	defer logFile.Close()
@@ -380,10 +380,10 @@ func main() {
 
 	ignoreTitle, err := os.Open(ignoreTitlePath)
 	if err != nil {
-		logger.Printf("Couldn't find ignore-site.txt")
+		logger.Printf("Couldn't find ignore-titles.txt")
 		scanner = bufio.NewScanner(strings.NewReader(""))
 	} else {
-		logger.Printf("Found ignore-site.txt")
+		logger.Printf("Found ignore-titles.txt")
 		scanner = bufio.NewScanner(ignoreTitle)
 	}
 	defer logFile.Close()
