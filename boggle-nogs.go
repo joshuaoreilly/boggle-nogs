@@ -315,11 +315,55 @@ func main() {
 	logger.SetOutput(mw)
 	logger.SetFlags(log.Ldate | log.Ltime)
 
-	ignoreSite, err := os.Open("ignore-site.txt")
-	check(err)
+	var domainFlag = flag.String("domain", "", "domain name of domain, if NOT behind proxy")
+	var portFlag = flag.Int("port", 8080, "port to run boggle nogs on")
+	var localFlag = flag.Bool("local", false, "if running on localhost")
+	var ignorePathFlag = flag.String("ignore", "", "path of folder containing ignore-*.txt files")
+
+	flag.Parse()
+
+	domain := *domainFlag
+	port := *portFlag
+	local := *localFlag
+	ignorePath := *ignorePathFlag
+
+	if local {
+		domain = "http://localhost"
+	}
+
+	logger.Printf("Links will be generated with domain %s", domain)
+	logger.Printf("Running on port %d", port)
+
+	var stringBuilder strings.Builder
+
+	var ignoreSitePath string
+	var ignoreTitlePath string
+
+	if ignorePath == "" {
+		// assume they're in the current folder
+		ignoreSitePath = "./ignore-site.txt"
+		ignoreTitlePath = "./ignore-title.txt"
+	} else {
+		stringBuilder.WriteString(ignorePath)
+		stringBuilder.WriteString("/ignore-site.txt")
+		ignoreSitePath = stringBuilder.String()
+		stringBuilder.Reset()
+		stringBuilder.WriteString(ignorePath)
+		stringBuilder.WriteString("/ignore-title.txt")
+		ignoreTitlePath = stringBuilder.String()
+	}
+
+	ignoreSite, err := os.Open(ignoreSitePath)
+	var scanner *bufio.Scanner
+	if err != nil {
+		logger.Printf("Couldn't find ignore-site.txt")
+		scanner = bufio.NewScanner(strings.NewReader(""))
+	} else {
+		logger.Printf("Found ignore-site.txt")
+		scanner = bufio.NewScanner(ignoreSite)
+	}
 	defer logFile.Close()
 
-	scanner := bufio.NewScanner(ignoreSite)
 	for scanner.Scan() {
 		siteExpr := scanner.Text()
 		if siteExpr == "" {
@@ -334,11 +378,16 @@ func main() {
 		}
 	}
 
-	ignoreTitle, err := os.Open("ignore-title.txt")
-	check(err)
+	ignoreTitle, err := os.Open(ignoreTitlePath)
+	if err != nil {
+		logger.Printf("Couldn't find ignore-site.txt")
+		scanner = bufio.NewScanner(strings.NewReader(""))
+	} else {
+		logger.Printf("Found ignore-site.txt")
+		scanner = bufio.NewScanner(ignoreTitle)
+	}
 	defer logFile.Close()
 
-	scanner = bufio.NewScanner(ignoreTitle)
 	for scanner.Scan() {
 		titleExpr := scanner.Text()
 		if titleExpr == "" {
@@ -352,23 +401,6 @@ func main() {
 			ignoredTitles = append(ignoredTitles, r)
 		}
 	}
-
-	var domainFlag = flag.String("domain", "", "domain name of domain, if NOT behind proxy")
-	var portFlag = flag.Int("port", 8080, "port to run boggle nogs on")
-	var localFlag = flag.Bool("local", false, "if running on localhost")
-
-	flag.Parse()
-
-	domain = *domainFlag
-	port = *portFlag
-	local = *localFlag
-
-	if local {
-		domain = "http://localhost"
-	}
-
-	logger.Printf("Links will be generated with domain %s", domain)
-	logger.Printf("Running on port %d", port)
 
 	client = http.Client{
 		Timeout: 30 * time.Second,
