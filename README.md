@@ -1,7 +1,7 @@
 # Boggle Nogs
 
 Boggle Nogs is an alternative front-end to Hacker News ([news.ycombinator.com](news.ycombinator.com)) which allows for ignoring submissions from certain websites or with titles containing specified strings.
-You can find a live instance [here](https://bn.oreillytest.com/).
+You can find a live instance [here](https://bn.joshuaoreilly.com/).
 
 ## Motivation
 
