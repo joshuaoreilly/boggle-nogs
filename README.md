@@ -71,6 +71,10 @@ Likewise, for ignoring all submission titles that contain the word "Frog", regar
 (?i)frog
 ```
 
+#### Docker
+
+`sudo docker run -p 8080:8080 -v /path/to/ignore/files:/ignore boggle-nogs:latest`
+
 ## TODO
 
 - [ ] Allow for head.html, etc. to be stored somewhere else
