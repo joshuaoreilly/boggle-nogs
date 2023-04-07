@@ -71,8 +71,7 @@ Likewise, for ignoring all submission titles that contain the word "Frog", regar
 
 ## TODO
 
-- [ ] Grey text alternative with better background contrast
+- [ ] Create function to handle creating regex to avoid repetitive code
 - [ ] Build docker image
 - [ ] Decide on and standardize ignore-naming (is it ignore? ignored? blocked? etc.)
-- [ ] Add dates to post details?
-- [ ] Use Firebase API instead of scraping website directly?
+- [x] Grey text alternative with better background contrast
