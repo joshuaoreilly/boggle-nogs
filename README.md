@@ -80,6 +80,6 @@ Likewise, for ignoring all submission titles that contain the word "Frog", regar
 - [ ] Update docker hub README
 - [ ] Allow for head.html, etc. to be stored somewhere else
 - [ ] Create function to handle creating regex to avoid repetitive code
-- [ ] Build docker image
+- [x] Build docker image
 - [x] Decide on and standardize ignore-naming (is it ignore? ignored? blocked? etc.)
 - [x] Grey text alternative with better background contrast
