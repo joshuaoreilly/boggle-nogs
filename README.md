@@ -73,7 +73,27 @@ Likewise, for ignoring all submission titles that contain the word "Frog", regar
 
 #### Docker
 
-`docker run -p 8080:8080 -v /path/to/ignore/files:/ignore boggle-nogs:latest`
+Run:
+
+```
+docker run -p 8080:8080 -v /path/to/ignore/files:/ignore boggle-nogs:latest
+```
+
+Or with docker-compose:
+
+```
+version: "3.0"
+
+services:
+  boggle-nogs:
+    image: oreillyjoshua/boggle-nogs:1.0.0
+    container_name: boggle-nogs
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    volumes:
+      - /path/to/ignore/folder:/ignore
+```
 
 ## TODO
 
